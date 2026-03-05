@@ -15,18 +15,58 @@ async function getDashboardData(query) {
       `http://localhost:3333/airports?search=${query}`,
     );
     const promises = [destinationsData, weathersData, airportsData];
-    const [destinations, weathers, airports] = await Promise.all(promises);
+    const [destinationsSettled, weathersSettled, airportsSettled] =
+      await Promise.allSettled(promises);
 
-    return {
-      city: destinations[0]?.name ?? null,
-      country: destinations[0]?.country ?? null,
-      temperature: weathers[0]?.temperature ?? null,
-      weather: weathers[0]?.weather_description ?? null,
-      airport: airports[0]?.name ?? null,
+    const data = {
+      city: null,
+      country: null,
+      temperature: null,
+      weather: null,
+      airport: null,
     };
-    
+
+    // Destinations controll
+
+    if (destinationsSettled.status === "rejected") {
+      console.error(
+        "Errore nel caricamento di destinations:",
+        destinationsSettled.reason,
+      );
+    } else {
+      const destinations = destinationsSettled.value;
+      data.city = destinations[0]?.name ?? null;
+      data.country = destinations[0]?.country ?? null;
+    }
+
+    // weathers controll
+
+    if (weathersSettled.status === "rejected") {
+      console.error(
+        "Errore nel caricamento di weathers:",
+        weathersSettled.reason,
+      );
+    } else {
+      const weathers = weathersSettled.value;
+      data.temperature = weathers[0]?.temperature ?? null;
+      data.weather = weathers[0]?.weather_description ?? null;
+    }
+
+    // airports controll
+
+    if (airportsSettled.status === "rejected") {
+      console.error(
+        "Errore nel caricamento di airports:",
+        airportsSettled.reason,
+      );
+    } else {
+      const airports = airportsSettled.value;
+      data.airport = airports[0]?.name ?? null;
+    }
+
+    return data;
   } catch (error) {
-    throw new Error(`Errore nel caricamento di una delle API: ${error.message}`);
+    throw new Error(`Errore nel caricamento di una delle API: ${error}`);
   }
 }
 
