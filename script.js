@@ -4,31 +4,48 @@ async function fetchJson(url) {
 }
 
 async function getDashboardData(query) {
-  const destinations = fetchJson(
-    `http://localhost:3333/destinations?search=${query}`,
-  );
-  const weathers = fetchJson(`http://localhost:3333/weathers?search=${query}`);
-  const airports = fetchJson(`http://localhost:3333/airports?search=${query}`);
-  const promises = [destinations, weathers, airports];
-  let result;
-
   try {
-    result = await Promise.all(promises);
-  } catch (error) {
-    throw new Error("Impossibile caricare una delle API");
-  }
+    const destinationsData = fetchJson(
+      `http://localhost:3333/destinations?search=${query}`,
+    );
+    const weathersData = fetchJson(
+      `http://localhost:3333/weathers?search=${query}`,
+    );
+    const airportsData = fetchJson(
+      `http://localhost:3333/airports?search=${query}`,
+    );
+    const promises = [destinationsData, weathersData, airportsData];
+    const [destinations, weathers, airports] = await Promise.all(promises);
 
-  return result;
+    return {
+      city: destinations[0]?.name ?? null,
+      country: destinations[0]?.country ?? null,
+      temperature: weathers[0]?.temperature ?? null,
+      weather: weathers[0]?.weather_description ?? null,
+      airport: airports[0]?.name ?? null,
+    };
+    
+  } catch (error) {
+    throw new Error(`Errore nel caricamento di una delle API: ${error.message}`);
+  }
 }
 
 (async () => {
-  const [destinations, weathers, airports] = await getDashboardData("london");
-  const [destination] = destinations;
-  const [weather] = weathers;
-  const [airport] = airports;
-  console.log(
-    `${destination.name} is in ${destination.country}.\n` +
-      `Today there are ${weather.temperature} degrees and the weather is ${weather.weather_description}.\n` +
-      `The main airport is ${airport.name}.\n`,
-  );
+  try {
+    const data = await getDashboardData("vienna");
+    console.log(`Dashboard data:`, data);
+    let message = ``;
+    if (data.city != null && data.country != null) {
+      message += `${data.city} is in ${data.country}.\n`;
+    }
+    if (data.temperature != null && data.weather != null) {
+      message += `Today there are ${data.temperature} degrees and the weather is ${data.weather}.\n`;
+    }
+    if (data.airport != null) {
+      message += `The main airport is ${data.airport}.\n`;
+    }
+    console.log(message);
+  } catch (error) {
+    console.error(error);
+  }
 })();
